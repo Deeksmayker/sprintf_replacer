@@ -19,6 +19,7 @@ int main(int argc, char **args) {
     String_Builder builder = make_string_builder(16, NULL);
     String_Builder full_file_builder = make_string_builder(Megabytes(1), NULL);
     
+    i32 file_number = 0;
     FILE *changed_files = fopen("files_to_change.txt", "r");
     char file_name_buffer[1024] = {0};
     char file_content_buffer[2048] = {0};
@@ -31,6 +32,7 @@ int main(int argc, char **args) {
             continue;  
         } 
         
+        file_number += 1;
         builder_clear(&full_file_builder);
         
         int line_number = 0;
@@ -65,9 +67,16 @@ int main(int argc, char **args) {
                 
                 builder_append(&builder, string("std::snprintf("));
                 builder_append(&builder, tstring("%s, ", snprintf_written_string->data));
-                builder_append(&builder, tstring("sizeof(%s), ", snprintf_written_string->data));
                 
-                i32 rest_of_line_start_index = get_index_of_substring_start(file_content_buffer, snprintf_written_string->data) + snprintf_written_string->count + 2; // + 2 for comma and space that we've written earlier.
+                if (splitted_line.count <= 2 || splitted_line.get(2)->data[0] == '\"') {
+                    builder_append(&builder, tstring("sizeof(%s), ", snprintf_written_string->data));
+                }
+                
+                i32 rest_of_line_start_index = get_index_of_substring_start(file_content_buffer, snprintf_written_string->data) + snprintf_written_string->count + 1; // + 2 for comma and space that we've written earlier.
+                
+                if (file_content_buffer[rest_of_line_start_index] == ' ') {
+                    rest_of_line_start_index += 1;
+                }
                 
                 // String line_string = string(file_content_buffer);
                 String rest_of_line = make_substring(line_string, rest_of_line_start_index, line_string.count - 1, NULL);
@@ -84,7 +93,12 @@ int main(int argc, char **args) {
             clear_allocator(&temp_allocator);
         }
         
-        FILE *changed_file = fopen("changed.c", "w");
+        #if DEBUG_BUILD
+            String changed_file_name = tstring("%d_%s", file_number, "changed.c");
+            FILE *changed_file = fopen(changed_file_name.data, "w");
+        #else
+            FILE *changed_file = fopen(file_name_buffer, "w");
+        #endif
         fprintf(changed_file, "%s", full_file_builder.data);
     }
     

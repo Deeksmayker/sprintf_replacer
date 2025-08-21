@@ -1,1 +1,4 @@
 another_test_file.c
+another_test_file - Copy.c
+another_test_file - Copy (1).c
+another_test_file - Copy (2).c
